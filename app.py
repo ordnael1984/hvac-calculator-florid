@@ -42,7 +42,18 @@ window_shgc = st.number_input("Window SHGC", value=0.25)
 st.header("Infiltration / Ventilation")
 
 ach = st.number_input("Air Changes per Hour (ACH)", value=0.5)
+# --- INTERNAL LOADS ---
 
+st.header("Internal Loads")
+
+equipment_watts = st.number_input("Lighting / Equipment Watts", value=1000)
+kitchen_laundry = st.checkbox("Add Kitchen / Laundry Load", value=True)
+
+people_sensible = occupants * 230
+people_latent = occupants * 200
+equipment_load = equipment_watts * 3.412
+
+kitchen_laundry_load = 1200 if kitchen_laundry else 0
 volume = area * height
 cfm = (ach * volume) / 60
 
@@ -120,7 +131,19 @@ st.write(f"Estimated Tons: {tons:.2f} tons")
 # --- TOTAL LOAD (REAL) ---
 
 total_load = envelope_load + sensible_infiltration + latent_infiltration
+total_internal_load = people_sensible + people_latent + equipment_load + kitchen_laundry_load
 
+total_load = (
+    envelope_load
+    + sensible_infiltration
+    + latent_infiltration
+    + total_internal_load
+)
+st.write(f"People Sensible Load: {people_sensible:,.0f} BTU/h")
+st.write(f"People Latent Load: {people_latent:,.0f} BTU/h")
+st.write(f"Lighting / Equipment Load: {equipment_load:,.0f} BTU/h")
+st.write(f"Kitchen / Laundry Load: {kitchen_laundry_load:,.0f} BTU/h")
+st.write(f"Total Internal Load: {total_internal_load:,.0f} BTU/h")
 tons_real = total_load / 12000
 
 st.header("Total Cooling Load (Manual J Style)")
