@@ -26,7 +26,17 @@ city = st.selectbox("City", [
 area = st.number_input("Area (ft²)", value=1200)
 height = st.number_input("Ceiling Height (ft)", value=8.0)
 occupants = st.number_input("Occupants", value=3)
+st.header("Building Envelope")
 
+wall_area = st.number_input("Wall Area (ft²)", value=800)
+wall_r = st.number_input("Wall R-Value", value=13.0)
+
+ceiling_area = st.number_input("Ceiling/Roof Area (ft²)", value=1200)
+ceiling_r = st.number_input("Ceiling/Roof R-Value", value=30.0)
+
+window_area = st.number_input("Window Area (ft²)", value=150)
+window_u = st.number_input("Window U-Factor", value=0.35)
+window_shgc = st.number_input("Window SHGC", value=0.25)
 volume = area * height
 # --- DESIGN CONDITIONS (Florida) ---
 
@@ -58,7 +68,27 @@ st.success("Step 1 ready ✅")
 # --- COOLING LOAD ESTIMATE ---
 
 st.header("Cooling Load Estimate")
+# --- MANUAL J COMPONENT LOADS ---
 
+st.header("Manual J Component Loads")
+
+wall_u = 1 / wall_r
+ceiling_u = 1 / ceiling_r
+
+wall_load = wall_u * wall_area * delta_t
+ceiling_load = ceiling_u * ceiling_area * delta_t
+window_conduction = window_u * window_area * delta_t
+
+solar_factor = 164
+window_solar = window_area * window_shgc * solar_factor
+
+envelope_load = wall_load + ceiling_load + window_conduction + window_solar
+
+st.write(f"Wall Load: {wall_load:,.0f} BTU/h")
+st.write(f"Ceiling/Roof Load: {ceiling_load:,.0f} BTU/h")
+st.write(f"Window Conduction Load: {window_conduction:,.0f} BTU/h")
+st.write(f"Window Solar Load: {window_solar:,.0f} BTU/h")
+st.write(f"Total Envelope Load: {envelope_load:,.0f} BTU/h")
 btu_factor = 25
 
 cooling_load = area * btu_factor
