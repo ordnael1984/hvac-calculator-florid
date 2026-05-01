@@ -37,6 +37,16 @@ ceiling_r = st.number_input("Ceiling/Roof R-Value", value=30.0)
 window_area = st.number_input("Window Area (ft²)", value=150)
 window_u = st.number_input("Window U-Factor", value=0.35)
 window_shgc = st.number_input("Window SHGC", value=0.25)
+# --- AIR INFILTRATION ---
+
+st.header("Infiltration / Ventilation")
+
+ach = st.number_input("Air Changes per Hour (ACH)", value=0.5)
+
+volume = area * height
+cfm = (ach * volume) / 60
+
+st.write(f"Infiltration CFM: {cfm:,.0f}")
 volume = area * height
 # --- DESIGN CONDITIONS (Florida) ---
 
@@ -90,9 +100,30 @@ st.write(f"Window Conduction Load: {window_conduction:,.0f} BTU/h")
 st.write(f"Window Solar Load: {window_solar:,.0f} BTU/h")
 st.write(f"Total Envelope Load: {envelope_load:,.0f} BTU/h")
 btu_factor = 25
+# --- INFILTRATION LOADS ---
+
+sensible_infiltration = 1.08 * cfm * delta_t
+
+# Diferencia de humedad típica Florida
+delta_grains = 30
+
+latent_infiltration = 0.68 * cfm * delta_grains
+
+st.write(f"Sensible Infiltration Load: {sensible_infiltration:,.0f} BTU/h")
+st.write(f"Latent Infiltration Load: {latent_infiltration:,.0f} BTU/h")
 
 cooling_load = area * btu_factor
 tons = cooling_load / 12000
 
 st.write(f"Estimated Cooling Load: {cooling_load:,.0f} BTU/h")
 st.write(f"Estimated Tons: {tons:.2f} tons")
+# --- TOTAL LOAD (REAL) ---
+
+total_load = envelope_load + sensible_infiltration + latent_infiltration
+
+tons_real = total_load / 12000
+
+st.header("Total Cooling Load (Manual J Style)")
+
+st.write(f"Total Cooling Load: {total_load:,.0f} BTU/h")
+st.write(f"Real Tons Required: {tons_real:.2f} tons")
