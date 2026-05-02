@@ -150,3 +150,25 @@ st.header("Total Cooling Load (Manual J Style)")
 
 st.write(f"Total Cooling Load: {total_load:,.0f} BTU/h")
 st.write(f"Real Tons Required: {tons_real:.2f} tons")
+# --- MANUAL S (EQUIPMENT SELECTION CHECK) ---
+
+st.header("Manual S - Equipment Selection")
+
+selected_tons = st.number_input("Selected System Size (tons)", value=3.0)
+selected_capacity = selected_tons * 12000
+
+max_allowed = total_load * 1.15
+min_allowed = total_load * 0.90  # opcional rango inferior
+
+st.write(f"Selected Capacity: {selected_capacity:,.0f} BTU/h")
+st.write(f"Max Allowed (115%): {max_allowed:,.0f} BTU/h")
+
+# Resultado tipo permiso
+if selected_capacity <= max_allowed:
+    st.success("PASS ✅ Equipment within Manual S limits")
+else:
+    st.error("FAIL ❌ Equipment oversized (exceeds 115%)")
+
+# Extra (pro): advertencia si está muy pequeño
+if selected_capacity < total_load:
+    st.warning("WARNING ⚠️ Equipment may be undersized")
