@@ -27,9 +27,54 @@ area = st.number_input("Area (ft²)", value=1200)
 height = st.number_input("Ceiling Height (ft)", value=8.0)
 occupants = st.number_input("Occupants", value=3)
 st.header("Building Envelope")
+st.subheader("Walls (Manual J Style)")
 
-wall_area = st.number_input("Wall Area (ft²)", value=800)
-wall_r = st.number_input("Wall R-Value", value=13.0)
+wall_method = st.selectbox(
+    "Wall Area Method",
+    [
+        "Auto (Room Dimensions)",
+        "Manual Input"
+    ]
+)
+
+if wall_method == "Auto (Room Dimensions)":
+    length = st.number_input("Room Length (ft)", value=40.0)
+    width = st.number_input("Room Width (ft)", value=30.0)
+    height_wall = st.number_input("Wall Height (ft)", value=8.0)
+
+    gross_wall_area = 2 * (length + width) * height_wall
+
+else:
+    gross_wall_area = st.number_input("Gross Wall Area (ft²)", value=800.0)
+
+window_area = st.number_input("Window Area (ft²)", value=150.0)
+door_area = st.number_input("Exterior Door Area (ft²)", value=40.0)
+
+wall_area = max(gross_wall_area - window_area - door_area, 0)
+
+st.write(f"Net Wall Area: {wall_area:.1f} ft²")
+
+wall_type = st.selectbox(
+    "Wall Type",
+    [
+        "Block (no insulation)",
+        "Block + insulation",
+        "Wood Frame 2x4",
+        "Wood Frame 2x6",
+        "Custom"
+    ]
+)
+
+if wall_type == "Block (no insulation)":
+    wall_r = 4.5
+elif wall_type == "Block + insulation":
+    wall_r = 7.0
+elif wall_type == "Wood Frame 2x4":
+    wall_r = 13.0
+elif wall_type == "Wood Frame 2x6":
+    wall_r = 19.0
+else:
+    wall_r = st.number_input("Custom Wall R-Value", value=13.0)
 
 ceiling_area = st.number_input("Ceiling/Roof Area (ft²)", value=1200)
 ceiling_r = st.number_input("Ceiling/Roof R-Value", value=30.0)
