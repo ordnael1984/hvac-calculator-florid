@@ -1,12 +1,14 @@
 import streamlit as st
+from legacy_estimate import EstimateInputs, calculate_preliminary
 
 st.set_page_config(
-    page_title="Florida HVAC Load Calculator",
+    page_title="DELUXE AIR PRO SOLUTIONS",
     page_icon="❄️"
 )
 
-st.title("HVAC Load Calculator - Florida")
-st.subheader("Manual J / Manual S (Permit Style)")
+st.title("DELUXE AIR PRO SOLUTIONS")
+st.subheader("Florida HVAC Load Calculator — Preliminary Estimate")
+st.warning("Preliminary estimates only. This prototype is not a validated Manual J load calculation, Manual S equipment selection, or permit-ready report.")
 
 st.header("Project Information")
 
@@ -27,7 +29,7 @@ area = st.number_input("Area (ft²)", value=1200)
 height = st.number_input("Ceiling Height (ft)", value=8.0)
 occupants = st.number_input("Occupants", value=3)
 st.header("Building Envelope")
-st.subheader("Walls (Manual J Style)")
+st.subheader("Walls — Preliminary Component Estimate")
 
 wall_method = st.selectbox(
     "Wall Area Method",
@@ -47,7 +49,7 @@ if wall_method == "Auto (Room Dimensions)":
 else:
     gross_wall_area = st.number_input("Gross Wall Area (ft²)", value=800.0)
 
-window_area = st.number_input("Window Area (ft²)", value=150.0)
+window_area = st.number_input("Window Area (ft²)", value=150.0, key="window_area")
 door_area = st.number_input("Exterior Door Area (ft²)", value=40.0)
 
 wall_area = max(gross_wall_area - window_area - door_area, 0)
@@ -79,7 +81,6 @@ else:
 ceiling_area = st.number_input("Ceiling/Roof Area (ft²)", value=1200)
 ceiling_r = st.number_input("Ceiling/Roof R-Value", value=30.0)
 
-window_area = st.number_input("Window Area (ft²)", value=150)
 window_u = st.number_input("Window U-Factor", value=0.35)
 window_shgc = st.number_input("Window SHGC", value=0.25)
 # --- AIR INFILTRATION ---
@@ -94,126 +95,64 @@ st.header("Internal Loads")
 equipment_watts = st.number_input("Lighting / Equipment Watts", value=1000)
 kitchen_laundry = st.checkbox("Add Kitchen / Laundry Load", value=True)
 
-people_sensible = occupants * 230
-people_latent = occupants * 200
-equipment_load = equipment_watts * 3.412
+try:
+    result = calculate_preliminary(EstimateInputs(
+        city=city, area=area, height=height, occupants=occupants,
+        gross_wall_area=gross_wall_area, window_area=window_area,
+        door_area=door_area, wall_r=wall_r, ceiling_area=ceiling_area,
+        ceiling_r=ceiling_r, window_u=window_u, window_shgc=window_shgc,
+        ach=ach, equipment_watts=equipment_watts,
+        kitchen_laundry=kitchen_laundry,
+    ))
+except ValueError as error:
+    st.error(f"Please correct the inputs: {error}")
+    st.stop()
 
-kitchen_laundry_load = 1200 if kitchen_laundry else 0
-volume = area * height
-cfm = (ach * volume) / 60
+if window_area + door_area > gross_wall_area:
+    st.warning("Window and door area exceeds gross wall area; net wall area is capped at zero.")
+st.write(f"Infiltration CFM: {result['cfm']:,.0f}")
+st.caption("This prototype estimates infiltration only; mechanical ventilation is not calculated.")
+st.header("Design Conditions — Prototype Assumptions")
+st.write(f"Outdoor Design Temp: {result['outdoor_temp']} °F")
+st.write(f"Indoor Design Temp: {result['indoor_temp']} °F")
+st.write(f"ΔT: {result['delta_t']} °F")
+st.write(f"Volume: {result['volume']} ft³")
 
-st.write(f"Infiltration CFM: {cfm:,.0f}")
-volume = area * height
-# --- DESIGN CONDITIONS (Florida) ---
+st.header("Preliminary Component Loads")
+for label, key in [
+    ("Wall Load", "wall_load"),
+    ("Ceiling/Roof Load", "ceiling_load"),
+    ("Window Conduction Load", "window_conduction"),
+    ("Window Solar Load", "window_solar"),
+    ("Total Envelope Load", "envelope_load"),
+    ("Sensible Infiltration Load", "sensible_infiltration"),
+    ("Latent Infiltration Load", "latent_infiltration"),
+    ("People Sensible Load", "people_sensible"),
+    ("People Latent Load", "people_latent"),
+    ("Lighting / Equipment Load", "equipment_load"),
+    ("Kitchen / Laundry Load", "kitchen_laundry_load"),
+    ("Total Internal Load", "total_internal_load"),
+]:
+    st.write(f"{label}: {result[key]:,.0f} BTU/h")
 
-design_data = {
-    "Cape Coral": 94,
-    "Fort Myers": 94,
-    "Naples": 93,
-    "Miami": 92,
-    "Orlando": 93,
-    "Tampa": 93
-}
+st.header("Preliminary Cooling Estimate — Component Sum")
+st.write(f"Component Total: {result['component_total']:,.0f} BTU/h")
+st.write(f"Equivalent Nominal Tons (arithmetic only): {result['component_tons']:.2f}")
+st.info("This component sum is preliminary; missing envelope and design details can change it.")
+with st.expander("Separate area rule of thumb — not an equipment recommendation"):
+    st.write("Original prototype assumption: 25 BTU/h per ft².")
+    st.write(f"Area-only estimate: {result['area_rule_load']:,.0f} BTU/h")
+    st.write(f"Area-only equivalent: {result['area_rule_tons']:.2f} nominal tons")
 
-outdoor_temp = design_data.get(city, 94)
-indoor_temp = 75
-
-delta_t = outdoor_temp - indoor_temp
-
-st.header("Design Conditions")
-
-st.write(f"Outdoor Design Temp: {outdoor_temp} °F")
-st.write(f"Indoor Design Temp: {indoor_temp} °F")
-st.write(f"ΔT: {delta_t} °F")
-
-st.header("Results")
-
-st.write(f"Volume: {volume} ft³")
-
-st.success("Step 1 ready ✅")
-# --- COOLING LOAD ESTIMATE ---
-
-st.header("Cooling Load Estimate")
-# --- MANUAL J COMPONENT LOADS ---
-
-st.header("Manual J Component Loads")
-
-wall_u = 1 / wall_r
-ceiling_u = 1 / ceiling_r
-
-wall_load = wall_u * wall_area * delta_t
-ceiling_load = ceiling_u * ceiling_area * delta_t
-window_conduction = window_u * window_area * delta_t
-
-solar_factor = 164
-window_solar = window_area * window_shgc * solar_factor
-
-envelope_load = wall_load + ceiling_load + window_conduction + window_solar
-
-st.write(f"Wall Load: {wall_load:,.0f} BTU/h")
-st.write(f"Ceiling/Roof Load: {ceiling_load:,.0f} BTU/h")
-st.write(f"Window Conduction Load: {window_conduction:,.0f} BTU/h")
-st.write(f"Window Solar Load: {window_solar:,.0f} BTU/h")
-st.write(f"Total Envelope Load: {envelope_load:,.0f} BTU/h")
-btu_factor = 25
-# --- INFILTRATION LOADS ---
-
-sensible_infiltration = 1.08 * cfm * delta_t
-
-# Diferencia de humedad típica Florida
-delta_grains = 30
-
-latent_infiltration = 0.68 * cfm * delta_grains
-
-st.write(f"Sensible Infiltration Load: {sensible_infiltration:,.0f} BTU/h")
-st.write(f"Latent Infiltration Load: {latent_infiltration:,.0f} BTU/h")
-
-cooling_load = area * btu_factor
-tons = cooling_load / 12000
-
-st.write(f"Estimated Cooling Load: {cooling_load:,.0f} BTU/h")
-st.write(f"Estimated Tons: {tons:.2f} tons")
-# --- TOTAL LOAD (REAL) ---
-
-total_load = envelope_load + sensible_infiltration + latent_infiltration
-total_internal_load = people_sensible + people_latent + equipment_load + kitchen_laundry_load
-
-total_load = (
-    envelope_load
-    + sensible_infiltration
-    + latent_infiltration
-    + total_internal_load
-)
-st.write(f"People Sensible Load: {people_sensible:,.0f} BTU/h")
-st.write(f"People Latent Load: {people_latent:,.0f} BTU/h")
-st.write(f"Lighting / Equipment Load: {equipment_load:,.0f} BTU/h")
-st.write(f"Kitchen / Laundry Load: {kitchen_laundry_load:,.0f} BTU/h")
-st.write(f"Total Internal Load: {total_internal_load:,.0f} BTU/h")
-tons_real = total_load / 12000
-
-st.header("Total Cooling Load (Manual J Style)")
-
-st.write(f"Total Cooling Load: {total_load:,.0f} BTU/h")
-st.write(f"Real Tons Required: {tons_real:.2f} tons")
-# --- MANUAL S (EQUIPMENT SELECTION CHECK) ---
-
-st.header("Manual S - Equipment Selection")
-
+st.header("Equipment Size — Preliminary Nominal Comparison")
 selected_tons = st.number_input("Selected System Size (tons)", value=3.0)
 selected_capacity = selected_tons * 12000
-
-max_allowed = total_load * 1.15
-min_allowed = total_load * 0.90  # opcional rango inferior
-
-st.write(f"Selected Capacity: {selected_capacity:,.0f} BTU/h")
-st.write(f"Max Allowed (115%): {max_allowed:,.0f} BTU/h")
-
-# Resultado tipo permiso
-if selected_capacity <= max_allowed:
-    st.success("PASS ✅ Equipment within Manual S limits")
+st.write(f"Nominal Selected Capacity: {selected_capacity:,.0f} BTU/h")
+st.write(f"Prototype 115% Reference: {result['component_total'] * 1.15:,.0f} BTU/h")
+if selected_capacity < result["component_total"]:
+    st.warning("Nominal size is below the preliminary component estimate. Verify equipment data and loads.")
+elif selected_capacity > result["component_total"] * 1.15:
+    st.warning("Nominal size exceeds the prototype 115% reference. Verify equipment data and loads.")
 else:
-    st.error("FAIL ❌ Equipment oversized (exceeds 115%)")
-
-# Extra (pro): advertencia si está muy pequeño
-if selected_capacity < total_load:
-    st.warning("WARNING ⚠️ Equipment may be undersized")
+    st.info("Nominal size falls within the prototype comparison range; this is not equipment approval.")
+st.caption("Actual total and sensible capacities at design conditions are required for equipment selection.")

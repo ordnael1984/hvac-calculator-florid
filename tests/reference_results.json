@@ -1,0 +1,53 @@
+{
+  "source": "Original main/app.py formulas before stage 1; reference values are not validated HVAC design loads.",
+  "cases": [
+    {
+      "name": "original_defaults_cape_coral",
+      "inputs": {
+        "city": "Cape Coral", "area": 1200, "height": 8, "occupants": 3,
+        "gross_wall_area": 1120, "window_area": 150, "door_area": 40,
+        "wall_r": 4.5, "ceiling_area": 1200, "ceiling_r": 30,
+        "window_u": 0.35, "window_shgc": 0.25, "ach": 0.5,
+        "equipment_watts": 1000, "kitchen_laundry": true
+      },
+      "expected": {
+        "net_wall_area": 930, "volume": 9600, "cfm": 80,
+        "wall_load": 3926.6666666666665, "ceiling_load": 760,
+        "window_conduction": 997.5, "window_solar": 6150,
+        "envelope_load": 11834.166666666666,
+        "sensible_infiltration": 1641.6000000000001,
+        "latent_infiltration": 1632.0000000000002,
+        "people_sensible": 690, "people_latent": 600,
+        "equipment_load": 3412, "kitchen_laundry_load": 1200,
+        "total_internal_load": 5902,
+        "component_total": 21009.766666666666,
+        "component_tons": 1.750813888888889,
+        "area_rule_load": 30000, "area_rule_tons": 2.5
+      }
+    },
+    {
+      "name": "miami_custom_no_kitchen",
+      "inputs": {
+        "city": "Miami", "area": 1665, "height": 9, "occupants": 4,
+        "gross_wall_area": 1400, "window_area": 200, "door_area": 50,
+        "wall_r": 13, "ceiling_area": 1665, "ceiling_r": 38,
+        "window_u": 0.3, "window_shgc": 0.22, "ach": 0.35,
+        "equipment_watts": 800, "kitchen_laundry": false
+      },
+      "expected": {
+        "net_wall_area": 1150, "volume": 14985, "cfm": 87.4125,
+        "wall_load": 1503.846153846154, "ceiling_load": 744.8684210526316,
+        "window_conduction": 1020, "window_solar": 7216,
+        "envelope_load": 10484.714574898786,
+        "sensible_infiltration": 1604.8935000000001,
+        "latent_infiltration": 1783.215,
+        "people_sensible": 920, "people_latent": 800,
+        "equipment_load": 2729.6, "kitchen_laundry_load": 0,
+        "total_internal_load": 4449.6,
+        "component_total": 18322.423074898787,
+        "component_tons": 1.5268685895748988,
+        "area_rule_load": 41625, "area_rule_tons": 3.46875
+      }
+    }
+  ]
+}
